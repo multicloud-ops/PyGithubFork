@@ -45,11 +45,6 @@ class GithubFork:
         """
         return self.fork
 
-    def create_ref_from_upstream(self, upstream_ref, downstream_ref):
-        # Get sha of upstream ref
-        ur = self.upstream_repo.get_git_ref(ref = upstream_ref)
-        return self.fork.create_git_ref(ref = downstream_ref, sha = ur.object.sha)
-
     def create_branch_from_upstream(self, upstream_branch, downstream_branch):
         """[summary]
 
@@ -60,10 +55,10 @@ class GithubFork:
         Returns:
             GithubForkedBranch: A GithubForkedBranch object which can be used to interact with the content on the forked branch
         """
-        self.create_ref_from_upstream(
-            upstream_ref = 'heads/{}'.format(upstream_branch),
-            downstream_ref = 'refs/heads/{}'.format(downstream_branch)
-            )
+        # Create ref from upstream
+        ur = self.upstream_repo.get_git_ref(ref='heads/{}'.format(upstream_branch))
+        self.fork.create_git_ref(ref='refs/heads/{}'.format(downstream_branch), sha=ur.object.sha)
+ 
         return GithubForkedBranch(repo=self.fork, branch=downstream_branch, upstream_repo=self.upstream_repo, upstream_branch=upstream_branch)
 
 class GithubForkedBranch:
@@ -84,6 +79,16 @@ class GithubForkedBranch:
         self.upstream_repo = upstream_repo
 
     def create_file(self, path, message, content):
+        """Creates file using github.Repository.Repository.create_file
+
+        Args:
+            path (string): path of file to create
+            message (string): commit message
+            content (string): content
+
+        Returns:
+            { ‘content’: ContentFile:, ‘commit’: Commit}: PyGithub file and commit object
+        """
         return self.repo.create_file(path, message, content, branch=self.branch)
 
     def update_content(self, update_file, message, content):
@@ -95,7 +100,7 @@ class GithubForkedBranch:
             content (string): content
 
         Returns:
-            github.ContentFile.ContentFile: { ‘content’: ContentFile:, ‘commit’: Commit}
+            { ‘content’: ContentFile:, ‘commit’: Commit}: PyGithub file and commit object
         """
         # When we update a file we first need to get the sha of the existing file
         sha = self.repo.get_contents(update_file, ref=self.branch).sha
