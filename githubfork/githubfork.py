@@ -76,7 +76,7 @@ class GithubFork:
         except GithubException as e:
             if e.status == 422:
                 # The branch already exists. Make sure it's in sync
-                if self._sync_branch_with_upstream(upstream_branch, downstream_branch, force=force):
+                if self._sync_branch_with_upstream(upstream_branch=upstream_branch, downstream_branch=downstream_branch, force=force):
                     return GithubForkedBranch(repo=self.fork, branch=downstream_branch, upstream_repo=self.upstream_repo, upstream_branch=upstream_branch)
             else:
                 raise GithubForkSyncError(e)
@@ -122,7 +122,7 @@ class GithubForkedBranch:
         Returns:
             {‘content’: ContentFile:, ‘commit’: Commit}: PyGithub file and commit object
         """
-        return self.repo.create_file(path, message, content, branch=self.branch)
+        return self.repo.create_file(path=path, message=message, content=content, branch=self.branch)
 
     def update_content(self, update_file, message, content):
         """Gets the sha of a given file and update it using github.Repository.Repository.update_file
@@ -136,7 +136,7 @@ class GithubForkedBranch:
             {‘content’: ContentFile:, ‘commit’: Commit}: PyGithub file and commit object
         """
         # When we update a file we first need to get the sha of the existing file
-        sha = self.repo.get_contents(update_file, ref=self.branch).sha
+        sha = self.repo.get_contents(path=update_file, ref=self.branch).sha
         return self.repo.update_file(
             path=update_file,
             message=message,
