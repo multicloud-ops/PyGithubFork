@@ -41,43 +41,21 @@ class GithubFork:
     def _get_repo_from_url(self, url):
         return self.gh.get_repo('/'.join(url.split('/')[-2:]))
     
-    def _create_ref_from_upstream(self, upstream_ref, downstream_ref):
-        # Get sha of upstream ref
-        ur = self.upstream_repo.get_git_ref(ref = upstream_ref)
-        # TODO: If the branch already exists we should try rebase or ensure we're at the same head
-        return self.fork.create_git_ref(ref=downstream_ref, sha=ur.object.sha)
-
     def get_fork(self):
-        """Create a branch in fork from upstream branch. Fails if forked branch already exists.
-
-        Args:
-            upstream_branch (string): The branch in the upstream repository to use as base
-            downstream_branch (string): The feature branch to create in the fork
+        """Get the fork that has been created
 
         Returns:
             github.Repository.Repository: PyGithub object for interacting with the forked repository
         """
         return self.fork
-
-    def create_branch_from_upstream(self, upstream_branch, downstream_branch):
-        """[summary]
-
-        Args:
-            upstream_branch (string): The branch in the upstream repository to use as base
-            downstream_branch (string): The feature branch to create in the fork
-
-        Returns:
-            GithubForkedBranch: A GithubForkedBranch object which can be used to interact with the content on the forked branch
-        """
-        # Create ref from upstream
-        self.create_ref_from_upstream(
-            upstream_ref = 'heads/{}'.format(upstream_branch),
-            downstream_ref = 'refs/heads/{}'.format(downstream_branch)
-        )
-        return GithubForkedBranch(repo=self.fork, branch=downstream_branch, upstream_repo=self.upstream_repo, upstream_branch=upstream_branch)
     
+    def _create_ref_from_upstream(self, upstream_ref, downstream_ref):
+        # Get sha of upstream ref and create downstream ref
+        ur = self.upstream_repo.get_git_ref(ref=upstream_ref)
+        self.fork.create_git_ref(ref=downstream_ref, sha=ur.object.sha)
+
     def create_or_sync_branch_from_upstream(self, upstream_branch, downstream_branch, force=False):
-        """Like self.create_branch_from_upstream but will sync branch if already exists
+        """Create a branch in fork from upstream branch or sync branch if already exists
 
         Args:
             upstream_branch (string): The branch in the upstream repository to use as base
@@ -88,9 +66,9 @@ class GithubFork:
             GithubForkedBranch: A GithubForkedBranch object which can be used to interact with the content on the forked branch
         """
         try:
-            self.create_ref_from_upstream(
-                upstream_ref = 'heads/{}'.format(upstream_branch),
-                downstream_ref = 'refs/heads/{}'.format(downstream_branch)
+            self._create_ref_from_upstream(
+                upstream_ref='heads/{}'.format(upstream_branch),
+                downstream_ref='refs/heads/{}'.format(downstream_branch)
             )
         except UnknownObjectException as e:
             raise UnknownObjectException(status=e.status, data=e.data)
@@ -100,32 +78,26 @@ class GithubFork:
                 # The branch already exists. Make sure it's in sync
                 if self._sync_branch_with_upstream(upstream_branch, downstream_branch, force=force):
                     return GithubForkedBranch(repo=self.fork, branch=downstream_branch, upstream_repo=self.upstream_repo, upstream_branch=upstream_branch)
-                else:
-                    raise GithubForkSyncError(e)
-
             else:
                 raise GithubForkSyncError(e)
         return GithubForkedBranch(repo=self.fork, branch=downstream_branch, upstream_repo=self.upstream_repo, upstream_branch=upstream_branch)
     
     def _sync_branch_with_upstream(self, upstream_branch, downstream_branch, force=False):
-        forkbranch = self.fork.get_git_ref('heads/{}'.format(downstream_branch))
-        ur = self.upstream_repo.get_git_ref(ref = 'heads/{}'.format(upstream_branch))
+        forkbranch = self.fork.get_git_ref(ref='heads/{}'.format(downstream_branch))
+        ur = self.upstream_repo.get_git_ref(ref='heads/{}'.format(upstream_branch))
         # Check if we're already synced
         if ur.object.sha == forkbranch.object.sha:
             return True
-        # Try to fast forward or force
         try:
-            t=forkbranch.edit(sha=ur.object.sha, force=force)
+            # Try to fast forward or force
+            forkbranch.edit(sha=ur.object.sha, force=force)
         except GithubException as e:
-            if e.status == 422:
-                # Not able to fast forward
-                return False
-            # We should addd some more failure scenarios and info here
-            return False
+            raise GithubForkSyncError(e)
+        return True
 
 class GithubForkedBranch:
     def __init__(self, repo, branch, upstream_repo, upstream_branch):
-        """[summary]
+        """Branch in fork from upstream branch
 
         Args:
             repo (github.Repository.Repository): Repository object of the forked repository
@@ -148,7 +120,7 @@ class GithubForkedBranch:
             content (string): content
 
         Returns:
-            { ‘content’: ContentFile:, ‘commit’: Commit}: PyGithub file and commit object
+            {‘content’: ContentFile:, ‘commit’: Commit}: PyGithub file and commit object
         """
         return self.repo.create_file(path, message, content, branch=self.branch)
 
@@ -161,7 +133,7 @@ class GithubForkedBranch:
             content (string): content
 
         Returns:
-            { ‘content’: ContentFile:, ‘commit’: Commit}: PyGithub file and commit object
+            {‘content’: ContentFile:, ‘commit’: Commit}: PyGithub file and commit object
         """
         # When we update a file we first need to get the sha of the existing file
         sha = self.repo.get_contents(update_file, ref=self.branch).sha
