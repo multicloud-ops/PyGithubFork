@@ -1,7 +1,7 @@
 import unittest, os, sys
-import time
+from datetime import datetime
 import yaml
-from github import Github
+from github import Github, GithubException
 sys.path.append('..')
 from githubfork import GithubFork, GithubForkedBranch
 
@@ -9,15 +9,19 @@ from githubfork import GithubFork, GithubForkedBranch
 # To run tests do: 'pytest -v -s'
 
 # PULL REQUEST will be created, if tests are ran again, PULL REQUEST will close and new one will open
+# FILE will be comitted to upstream branch and forked branch for testing
 
-github_repo = 'evelio-unit-testing/testing' # Change github_repo to the upstream repo you want to fork from
-github_repo_branch = 'main'                 # Upstream branch
-github_fork_repo_branch = 'testing-fork'    # Forked branch
+github_repo = 'evelio-unit-testing/testing'                   # Change github_repo to the upstream repo you want to fork from
+github_repo_branch = 'main'                                   # Upstream branch
+github_fork_repo_branch = 'testing-fork'                      # Forked branch
 
 class TestGithubFork(unittest.TestCase):
     def setUp(self):
         # Create github connect, change format if using github.ibm
         self.gh = Github(os.getenv('GITHUB_TOKEN'))
+
+        # Upstream repo
+        self.repo = self.gh.get_repo(github_repo)
         
         # Create fork object
         self.fork_object = GithubFork(github=self.gh, fork_from=github_repo)
@@ -28,6 +32,12 @@ class TestGithubFork(unittest.TestCase):
         self.assertEqual(forked_repo, self.gh.get_repo(forked_repo.full_name))
 
     def test_create_or_sync_branch_from_upstream(self):
+        # Dummy yaml content files
+        github_repo_file = 'githubfork_sync_testing.yaml'
+        dummy_parsed_yaml = {'timesamp': '1'}
+        repo_parsed_yaml = {'timestamp': '{}-{}'.format(github_repo_branch, datetime.today().strftime('%y%m%d%H%M%S'))}
+        fork_parsed_yaml = {'timestamp': '{}-{}'.format(github_fork_repo_branch, datetime.today().strftime('%y%m%d%H%M%S'))}
+
         # Testing creating github forked branch object
         forked_branch_object = self.fork_object.create_or_sync_branch_from_upstream(
             upstream_branch=github_repo_branch,
@@ -37,6 +47,82 @@ class TestGithubFork(unittest.TestCase):
 
         # Check that branch exists
         self.assertEqual(github_fork_repo_branch, self.gh.get_repo(self.fork_object.get_fork().full_name).get_branch(github_fork_repo_branch).name)
+
+        # Create testing file for both upstream and fork if it does not exists
+        try:
+            self.repo.get_contents(path=github_repo_file, ref=github_repo_branch)
+        except GithubException as e:
+            if e.status == 404:
+                self.repo.create_file(path=github_repo_file, message='Add file for testing.', content=yaml.dump(dummy_parsed_yaml, sort_keys=False), branch=github_repo_branch)
+            
+        try:
+            self.fork_object.get_fork().get_contents(path=github_repo_file, ref=github_fork_repo_branch)
+        except GithubException as e:
+            if e.status == 404:
+                self.fork_object.get_fork().create_file(path=github_repo_file, message='Add file for testing.', content=yaml.dump(dummy_parsed_yaml, sort_keys=False), branch=github_fork_repo_branch)
+
+        # Update upstream and sync
+        sha = self.repo.get_contents(path=github_repo_file, ref=github_repo_branch).sha
+        self.repo.update_file(
+            path=github_repo_file,
+            message='Update upstream for sync.',
+            content=yaml.dump(repo_parsed_yaml, sort_keys=False),
+            sha=sha,
+            branch=github_repo_branch
+        )
+
+        # Get file content from upstream repo
+        updated_file_github = self.repo.get_contents(path=github_repo_file, ref=github_repo_branch)
+        parsed_yaml_github = yaml.load(updated_file_github.decoded_content, Loader=yaml.SafeLoader)
+
+        # Compare they are equal
+        self.assertDictEqual(repo_parsed_yaml, parsed_yaml_github)
+
+        # Testing creating github forked branch object
+        forked_branch_object = self.fork_object.create_or_sync_branch_from_upstream(
+            upstream_branch=github_repo_branch,
+            downstream_branch=github_fork_repo_branch,
+            force=True
+        )
+
+        # Get file content from forked repo
+        updated_file_github = self.fork_object.get_fork().get_contents(path=github_repo_file, ref=github_fork_repo_branch)
+        parsed_yaml_github = yaml.load(updated_file_github.decoded_content, Loader=yaml.SafeLoader)
+
+        # Compare they are equal
+        self.assertDictEqual(repo_parsed_yaml, parsed_yaml_github)
+
+        # Update file on fork and sync
+        sha = self.fork_object.get_fork().get_contents(path=github_repo_file, ref=github_fork_repo_branch).sha
+        self.fork_object.get_fork().update_file(
+            path=github_repo_file,
+            message='Update upstream for sync.',
+            content=yaml.dump(fork_parsed_yaml, sort_keys=False),
+            sha=sha,
+            branch=github_fork_repo_branch
+        )
+
+        # Get file content from fork repo
+        updated_file_github = self.fork_object.get_fork().get_contents(path=github_repo_file, ref=github_fork_repo_branch)
+        parsed_yaml_github = yaml.load(updated_file_github.decoded_content, Loader=yaml.SafeLoader)
+
+        # Compare they are equal
+        self.assertDictEqual(fork_parsed_yaml, parsed_yaml_github)
+
+        # Testing creating github forked branch object
+        forked_branch_object = self.fork_object.create_or_sync_branch_from_upstream(
+            upstream_branch=github_repo_branch,
+            downstream_branch=github_fork_repo_branch,
+            force=True
+        )
+
+        # Get file content from forked repo
+        updated_file_github = self.fork_object.get_fork().get_contents(path=github_repo_file, ref=github_fork_repo_branch)
+        parsed_yaml_github = yaml.load(updated_file_github.decoded_content, Loader=yaml.SafeLoader)
+
+        # Compare they are equal to what was initially set in upstream
+        self.assertDictEqual(repo_parsed_yaml, parsed_yaml_github)
+
 
     def test__get_repo_from_url(self):
         # Test getting repo
