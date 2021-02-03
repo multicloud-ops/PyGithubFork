@@ -1,3 +1,8 @@
+from github import GithubException, UnknownObjectException
+
+class GithubForkSyncError(Exception):
+    pass
+
 class GithubFork:
     def  __init__(self, github, upstream_repo=None, fork_from=None, fork_from_url=None):
         """Create a fork of a given github repo in the authenticated users account.
@@ -30,12 +35,17 @@ class GithubFork:
 
         self.fork_owner = self.fork.owner
 
-
     def _create_github_connection(self):
         raise NotImplementedError('You must supply a github connection object')
 
     def _get_repo_from_url(self, url):
         return self.gh.get_repo('/'.join(url.split('/')[-2:]))
+    
+    def create_ref_from_upstream(self, upstream_ref, downstream_ref):
+        # Get sha of upstream ref
+        ur = self.upstream_repo.get_git_ref(ref = upstream_ref)
+        # TODO: If the branch already exists we should try rebase or ensure we're at the same head
+        return self.fork.create_git_ref(ref=downstream_ref, sha=ur.object.sha)
 
     def get_fork(self):
         """Get the fork that has been created
@@ -56,13 +66,42 @@ class GithubFork:
             GithubForkedBranch: A GithubForkedBranch object which can be used to interact with the content on the forked branch
         """
         # Create ref from upstream
-        ur = self.upstream_repo.get_git_ref(ref='heads/{}'.format(upstream_branch))
-        self.fork.create_git_ref(ref='refs/heads/{}'.format(downstream_branch), sha=ur.object.sha)
- 
+        self.create_ref_from_upstream(
+            upstream_ref = 'heads/{}'.format(upstream_branch),
+            downstream_ref = 'refs/heads/{}'.format(downstream_branch)
+        )
+        return GithubForkedBranch(repo=self.fork, branch=downstream_branch, upstream_repo=self.upstream_repo, upstream_branch=upstream_branch)
+    
+    def create_or_sync_branch_from_upstream(self, upstream_branch, downstream_branch, force=False):
+        """Like self.create_branch_from_upstream but will sync branch if already exists
+        Args:
+            upstream_branch (string): The branch in the upstream repository to use as base
+            downstream_branch (string): The feature branch to create in the fork
+            force (bool): Force sync the branch if it cannot be fast-forwarded
+        Returns:
+            GithubForkedBranch: A GithubForkedBranch object which can be used to interact with the content on the forked branch
+        """
+        try:
+            self.create_ref_from_upstream(
+                upstream_ref = 'heads/{}'.format(upstream_branch),
+                downstream_ref = 'refs/heads/{}'.format(downstream_branch)
+            )
+        except UnknownObjectException as e:
+            raise UnknownObjectException(status=e.status, data=e.data)
+
+        except GithubException as e:
+            if e.status == 422:
+                # The branch already exists. Make sure it's in sync
+                if self._sync_branch_with_upstream(upstream_branch, downstream_branch, force=force):
+                    return GithubForkedBranch(repo=self.fork, branch=downstream_branch, upstream_repo=self.upstream_repo, upstream_branch=upstream_branch)
+                else:
+                    raise GithubForkSyncError(e)
+
+            else:
+                raise GithubForkSyncError(e)
         return GithubForkedBranch(repo=self.fork, branch=downstream_branch, upstream_repo=self.upstream_repo, upstream_branch=upstream_branch)
 
 class GithubForkedBranch:
-
     def __init__(self, repo, branch, upstream_repo, upstream_branch):
         """[summary]
 

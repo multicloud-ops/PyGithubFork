@@ -7,11 +7,12 @@ from githubfork import GithubFork, GithubForkedBranch
 # Set GITHUB_TOKEN in env before running tests
 # To run tests do: 'pytest -v -s'
 
-# DELETE testing-fork branch created and close pull request after running tests
+# DELETE testing-fork, testing-branch branch created and close pull request after running tests
 
 github_repo = 'eveliososa/testing' # Change github_repo to the upstream repo you want to fork from
 github_repo_branch = 'main'
 github_fork_repo_branch = 'testing-fork'
+github_testing_branch = 'testing-branch'
 
 class TestGithubFork(unittest.TestCase):
     def setUp(self):
