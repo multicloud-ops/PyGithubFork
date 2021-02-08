@@ -64,6 +64,10 @@ class GithubFork:
 
         Returns:
             GithubForkedBranch: A GithubForkedBranch object which can be used to interact with the content on the forked branch
+
+        Raises:
+            UnknownObjectException: When ref of upstream could not be found
+            GithubForkSyncError: When forked branch could not be created or synced from upstream branch
         """
         try:
             self._create_ref_from_upstream(
