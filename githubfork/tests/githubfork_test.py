@@ -5,7 +5,7 @@ from datetime import datetime
 from github import Github, GithubException
 from ..githubfork import GithubFork, GithubForkedBranch
 
-# Set GITHUB_TOKEN in env before running tests
+# Set TESTING_GITHUB_TOKEN in env before running tests
 # To run tests do: 'pytest -v -s'
 
 # PULL REQUEST will be created, if tests are ran again, PULL REQUEST will close and new one will open
@@ -19,7 +19,7 @@ github_fork_repo_branch = 'testing-fork'                      # Forked branch
 class TestGithubFork(unittest.TestCase):
     def setUp(self):
         # Create github connect, change format if using github.ibm
-        self.gh = Github(os.getenv('GITHUB_TOKEN'))
+        self.gh = Github(os.getenv('TESTING_GITHUB_TOKEN'))
 
         # Upstream repo
         self.repo = self.gh.get_repo(github_repo)
