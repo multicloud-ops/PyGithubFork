@@ -6,5 +6,8 @@ setup(
     description='Code wraps PyGithub to simplify workflows dealing with forks',
     author='hassenius',
     url='https://github.com/multicloud-ops/PyGithubFork',
-    packages=['githubfork']
+    packages=['githubfork'],
+    install_requires=[
+        'pygithub'
+    ]
 )
