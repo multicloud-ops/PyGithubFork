@@ -1,9 +1,9 @@
-import unittest, os, sys
-from datetime import datetime
+import unittest
+import os
 import yaml
+from datetime import datetime
 from github import Github, GithubException
-sys.path.append('..')
-from githubfork import GithubFork, GithubForkedBranch
+from ..githubfork import GithubFork, GithubForkedBranch
 
 # Set GITHUB_TOKEN in env before running tests
 # To run tests do: 'pytest -v -s'
@@ -11,9 +11,10 @@ from githubfork import GithubFork, GithubForkedBranch
 # PULL REQUEST will be created, if tests are ran again, PULL REQUEST will close and new one will open
 # FILE will be comitted to upstream branch and forked branch for testing
 
-github_repo = 'evelio-unit-testing/testing'                   # Change github_repo to the upstream repo you want to fork from
+github_repo = 'multicloud-ops/unit-testing'                   # Change github_repo to the upstream repo you want to fork from
 github_repo_branch = 'main'                                   # Upstream branch
 github_fork_repo_branch = 'testing-fork'                      # Forked branch
+
 
 class TestGithubFork(unittest.TestCase):
     def setUp(self):
@@ -22,7 +23,7 @@ class TestGithubFork(unittest.TestCase):
 
         # Upstream repo
         self.repo = self.gh.get_repo(github_repo)
-        
+
         # Create fork object
         self.fork_object = GithubFork(github=self.gh, fork_from=github_repo)
 
@@ -39,27 +40,38 @@ class TestGithubFork(unittest.TestCase):
         fork_parsed_yaml = {'timestamp': '{}-{}'.format(github_fork_repo_branch, datetime.today().strftime('%y%m%d%H%M%S'))}
 
         # Testing creating github forked branch object
-        forked_branch_object = self.fork_object.create_or_sync_branch_from_upstream(
+        self.fork_object.create_or_sync_branch_from_upstream(
             upstream_branch=github_repo_branch,
             downstream_branch=github_fork_repo_branch,
             force=True
         )
 
         # Check that branch exists
-        self.assertEqual(github_fork_repo_branch, self.gh.get_repo(self.fork_object.get_fork().full_name).get_branch(github_fork_repo_branch).name)
+        self.assertEqual(github_fork_repo_branch, self.gh.get_repo(
+            self.fork_object.get_fork().full_name).get_branch(github_fork_repo_branch).name
+        )
 
         # Create testing file for both upstream and fork if it does not exists
         try:
             self.repo.get_contents(path=github_repo_file, ref=github_repo_branch)
         except GithubException as e:
             if e.status == 404:
-                self.repo.create_file(path=github_repo_file, message='Add file for testing.', content=yaml.dump(dummy_parsed_yaml, sort_keys=False), branch=github_repo_branch)
-            
+                self.repo.create_file(
+                    path=github_repo_file,
+                    message='Add file for testing.',
+                    content=yaml.dump(dummy_parsed_yaml, sort_keys=False),
+                    branch=github_repo_branch
+                )
+
         try:
             self.fork_object.get_fork().get_contents(path=github_repo_file, ref=github_fork_repo_branch)
         except GithubException as e:
             if e.status == 404:
-                self.fork_object.get_fork().create_file(path=github_repo_file, message='Add file for testing.', content=yaml.dump(dummy_parsed_yaml, sort_keys=False), branch=github_fork_repo_branch)
+                self.fork_object.get_fork().create_file(
+                    path=github_repo_file,
+                    message='Add file for testing.',
+                    content=yaml.dump(dummy_parsed_yaml, sort_keys=False),
+                    branch=github_fork_repo_branch)
 
         # Update upstream and sync
         sha = self.repo.get_contents(path=github_repo_file, ref=github_repo_branch).sha
@@ -79,7 +91,7 @@ class TestGithubFork(unittest.TestCase):
         self.assertDictEqual(repo_parsed_yaml, parsed_yaml_github)
 
         # Testing creating github forked branch object
-        forked_branch_object = self.fork_object.create_or_sync_branch_from_upstream(
+        self.fork_object.create_or_sync_branch_from_upstream(
             upstream_branch=github_repo_branch,
             downstream_branch=github_fork_repo_branch,
             force=True
@@ -110,7 +122,7 @@ class TestGithubFork(unittest.TestCase):
         self.assertDictEqual(fork_parsed_yaml, parsed_yaml_github)
 
         # Testing creating github forked branch object
-        forked_branch_object = self.fork_object.create_or_sync_branch_from_upstream(
+        self.fork_object.create_or_sync_branch_from_upstream(
             upstream_branch=github_repo_branch,
             downstream_branch=github_fork_repo_branch,
             force=True
@@ -123,7 +135,6 @@ class TestGithubFork(unittest.TestCase):
         # Compare they are equal to what was initially set in upstream
         self.assertDictEqual(repo_parsed_yaml, parsed_yaml_github)
 
-
     def test__get_repo_from_url(self):
         # Test getting repo
         repo = self.fork_object._get_repo_from_url('https://github.com/{}'.format(github_repo))
@@ -132,20 +143,21 @@ class TestGithubFork(unittest.TestCase):
     def test__create_github_connection(self):
         # Skip testing internal function
         self.assertEqual(True, True)
-    
+
     def test__create_ref_from_upstream(self):
         # Skip testing internal function
         self.assertEqual(True, True)
-    
+
     def test__sync_branch_with_upstream(self):
         # Skip testing internal function
         self.assertEqual(True, True)
+
 
 class TestGithubForkedBranch(unittest.TestCase):
     def setUp(self):
         # Create github connect, change format if using github.ibm
         self.gh = Github(os.getenv('GITHUB_TOKEN'))
-        
+
         # Create fork object
         self.fork_object = GithubFork(github=self.gh, fork_from=github_repo)
 
@@ -163,7 +175,7 @@ class TestGithubForkedBranch(unittest.TestCase):
 
     def test_create_file(self):
         # Dummy yaml content
-        parsed_yaml = {'content':'testing'}
+        parsed_yaml = {'content': 'testing'}
         path = 'githubfork_testing.yaml'
 
         # Create file
@@ -183,13 +195,13 @@ class TestGithubForkedBranch(unittest.TestCase):
 
     def test_update_content(self):
         # Dummy yaml content files
-        parsed_yaml = {'content':'testing'}
+        parsed_yaml = {'content': 'testing'}
         path = 'githubfork_testing.yaml'
 
         # Update file
         updated_file = self.forked_branch_object.update_content(
-            update_file=path, 
-            message='Update testing yaml file from update content', 
+            update_file=path,
+            message='Update testing yaml file from update content',
             content=yaml.dump(parsed_yaml, sort_keys=False)
         )
 

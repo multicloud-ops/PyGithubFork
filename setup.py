@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='PyGithubFork',
@@ -7,8 +7,4 @@ setup(
     author='hassenius',
     url='https://github.com/multicloud-ops/PyGithubFork',
     packages=['githubfork']
-    # install_requires=[
-    #     'pyyaml',
-    #     'pygithub'
-    # ]
 )
