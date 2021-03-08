@@ -1,0 +1,24 @@
+{
+  "id": 1,
+  "node_id": "dummyRepo",
+  "name": "dummyRepo",
+  "full_name": "dummyOrg/dummyRepo",
+  "owner": {
+    "login": "dummyOrg",
+    "id": 1,
+    "node_id": "dummyOrg",
+    "url": "https://api.github.com/users/dummyOrg",
+    "html_url": "https://github.com/dummyOrg",
+    "organizations_url": "https://api.github.com/users/dummyOrg/orgs",
+    "repos_url": "https://api.github.com/users/dummyOrg/repos",
+    "type": "Organization"
+  },
+  "private": false,
+  "html_url": "https://github.com/dummyOrg/dummyRepo",
+  "fork": false,
+  "url": "https://api.github.com/repos/dummyOrg/dummyRepo",
+  "forks_url": "https://api.github.com/repos/dummyOrg/dummyRepo/forks",
+  "forks_count": 1,
+  "forks": 1,
+  "allow_merge_commit": true
+}

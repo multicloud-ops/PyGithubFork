@@ -1,0 +1,11 @@
+{
+  "login": "dummyUser",
+  "id": 2,
+  "node_id": "dummyUser",
+  "url": "https://api.github.com/users/dummyUser",
+  "html_url": "https://github.com/dummyUser",
+  "organizations_url": "https://api.github.com/users/dummyUser/orgs",
+  "repos_url": "https://api.github.com/users/dummyUser/repos",
+  "type": "User",
+  "name": "dummyUser"
+}

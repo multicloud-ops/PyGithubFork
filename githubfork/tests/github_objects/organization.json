@@ -1,0 +1,11 @@
+{
+  "login": "dummyOrg",
+  "id": 1,
+  "node_id": "dummyOrg",
+  "url": "https://api.github.com/orgs/dummyOrg",
+  "html_url": "https://github.com/dummyOrg",
+  "organizations_url": "https://api.github.com/users/dummyOrg/orgs",
+  "repos_url": "https://api.github.com/orgs/dummyOrg/repos",
+  "name": "dummyOrg",
+  "type": "Organization"
+}
