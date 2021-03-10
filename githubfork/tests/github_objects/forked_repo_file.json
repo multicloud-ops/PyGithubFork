@@ -1,0 +1,11 @@
+{
+  "content": {
+    "name": "dummtFile.txt",
+    "path": "dummyFile.txt",
+    "type": "file",
+    "sha": "dummyFileSHA"
+  },
+  "commit": {
+    "sha": "dummyFileSHA"
+  }
+}
