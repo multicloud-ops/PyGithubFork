@@ -1,0 +1,10 @@
+{
+  "ref": "refs/heads/dummyDownstreamBranch",
+  "node_id": "dummyDownstreamBranch",
+  "url": "https://api.github.com/repos/dummyUser/dummyRepo/git/refs/heads/dummyDownstreamBranch",
+  "object": {
+    "type": "commit",
+    "sha": "dummyForkRepoSHA",
+    "url": "https://api.github.com/repos/dummyUser/dummyRepo/git/commits/dummyForkRepoSHA"
+  }
+}

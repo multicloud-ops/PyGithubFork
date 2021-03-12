@@ -1,0 +1,9 @@
+{
+  "type": "file",
+  "encoding": "base64",
+  "size": 5362,
+  "name": "dummyFile.txt",
+  "path": "dummyFile.txt",
+  "content": "dummyContent.",
+  "sha": "dummyFileSHA"
+}
