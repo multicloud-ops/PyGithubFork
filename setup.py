@@ -8,6 +8,6 @@ setup(
     url='https://github.com/multicloud-ops/PyGithubFork',
     packages=['githubfork'],
     install_requires=[
-        'pygithub'
+        'pygithub==1.54.1'
     ]
 )
