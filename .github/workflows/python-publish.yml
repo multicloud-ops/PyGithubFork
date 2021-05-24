@@ -24,7 +24,7 @@ jobs:
         VERSION=$(echo $GITHUB_REF | sed 's#.*/v##')
 
         # file and content that will be replaced
-        PLACEHOLDER="version='default'"
+        PLACEHOLDER="version='0.0.0'"
         SETUP_FILE="setup.py"
 
         # check to see that content is in file, then replace to have latest release version
